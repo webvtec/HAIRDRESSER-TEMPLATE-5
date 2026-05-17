@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATM BEAUTY STYLES — Admin Dashboard</title>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,300;1,6..72,400&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --terra:     #C4622D;
+      --terra2:    #A84E22;
+      --terra3:    #8C3D18;
+      --terrafade: rgba(196,98,45,0.12);
+      --sage:      #6B8C6E;
+      --sage2:     #537356;
+      --sagefade:  rgba(107,140,110,0.15);
+      --cream:     #F5F0E8;
+      --cream2:    #EDE5D8;
+      --cream3:    #E4D9C8;
+      --parch:     #D9CEB8;
+      --ink:       #1A150E;
+      --ink2:      #2D2419;
+      --muted:     #7A6E60;
+      --mutedlt:   #A89E90;
+      --line:      rgba(26,21,14,0.1);
+      --lineheavy: rgba(26,21,14,0.2);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--cream);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--cream2); }
+    ::-webkit-scrollbar-thumb { background: var(--terra); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--terra2); }
+
+    #accessOverlay {
+      position: fixed; inset: 0; background: var(--cream);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 9999; gap: 24px;
+    }
+    .overlay-logo {font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--ink); margin-bottom: 8px;}
+    #accessStatus {font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 400; letter-spacing: 1px; color: var(--muted); text-transform: uppercase;}
+    .spinner {width: 40px; height: 40px; border: 3px solid var(--parch); border-top: 3px solid var(--terra); border-radius: 50%; animation: spin 1s linear infinite;}
+    @keyframes spin {0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+    .header {background: var(--ink2); border-bottom: 1px solid var(--line); padding: 16px 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(26,21,14,0.06);}
+    .header-inner {max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;}
+    .header-logo {font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--cream);}
+    .header-logo span {color: var(--terra); font-style: italic;}
+    .header-btn {font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 8px 16px; border-radius: 2px; background: var(--terra); color: #fff; border: none; cursor: pointer; transition: all 0.22s;}
+    .header-btn:hover {background: var(--terra2);}
+
+    .nav-tabs {background: var(--cream2); border-bottom: 1px solid var(--line); display: flex; gap: 0; padding: 0 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;}
+    .nav-tabs::-webkit-scrollbar {display: none;}
+    .nav-tab {font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 14px 20px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted); cursor: pointer; transition: all 0.22s; white-space: nowrap;}
+    .nav-tab:hover {color: var(--ink); background: var(--terrafade);}
+    .nav-tab.active {color: var(--terra); border-bottom-color: var(--terra); background: var(--terrafade);}
+
+    .container {max-width: 1200px; margin: 0 auto; padding: 28px 20px;}
+    .page {display: none;}
+    .page.active {display: block;}
+    .page-title {font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--ink); margin-bottom: 8px;}
+    .page-subtitle {font-size: 12px; color: var(--muted); margin-bottom: 28px; letter-spacing: 0.5px;}
+
+    .form-group {margin-bottom: 18px;}
+    .form-label {display: block; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--terra); margin-bottom: 8px;}
+    .form-input, .form-select {width: 100%; padding: 12px 14px; font-family: 'Space Mono', monospace; font-size: 13px; background: var(--cream2); border: 1px solid var(--parch); border-radius: 2px; color: var(--ink); transition: all 0.22s;}
+    .form-input:focus, .form-select:focus {outline: none; border-color: var(--terra); background: #fff; box-shadow: 0 0 0 3px var(--terrafade);}
+    .form-select option {background: #fff; color: var(--ink);}
+
+    .btn {font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 12px 20px; border-radius: 2px; border: none; cursor: pointer; transition: all 0.22s; box-shadow: 0 2px 8px rgba(26,21,14,0.08);}
+    .btn-primary {background: var(--terra); color: #fff;}
+    .btn-primary:hover {background: var(--terra2); box-shadow: 0 4px 12px rgba(196,98,45,0.25);}
+    .btn-secondary {background: var(--sage); color: #fff;}
+    .btn-secondary:hover {background: var(--sage2); box-shadow: 0 4px 12px rgba(107,140,110,0.25);}
+    .btn-danger {background: #C84630; color: #fff;}
+    .btn-danger:hover {background: #A83520;}
+    .btn-neutral {background: var(--muted); color: #fff;}
+    .btn-neutral:hover {background: var(--ink);}
+
+    .upload-area {border: 2px dashed var(--parch); border-radius: 4px; padding: 32px 24px; text-align: center; background: var(--cream2); cursor: pointer; transition: all 0.3s; position: relative; margin-bottom: 20px;}
+    .upload-area:hover {background: var(--cream3); border-color: var(--terra);}
+    .upload-area input[type="file"] {position: absolute; opacity: 0; width: 100%; height: 100%; top: 0; left: 0; cursor: pointer;}
+    .upload-icon {font-size: 36px; margin-bottom: 12px;}
+    .upload-text {font-size: 13px; color: var(--terra); font-weight: 700; margin-bottom: 6px;}
+    .upload-hint {font-size: 11px; color: var(--muted);}
+
+    .gallery-scroll {display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 12px; margin-bottom: 24px;}
+    .gallery-scroll::-webkit-scrollbar {display: none;}
+    .gallery-item {flex: 0 0 auto; width: 240px; height: 240px; position: relative; border-radius: 2px; overflow: hidden; border: 1px solid var(--parch); scroll-snap-align: start; transition: all 0.3s; background: var(--cream3);}
+    .gallery-item:hover {transform: scale(1.02); box-shadow: 0 4px 16px rgba(196,98,45,0.15);}
+    .gallery-item img {width: 100%; height: 100%; object-fit: cover;}
+    .gallery-item-overlay {position: absolute; inset: 0; background: rgba(26,21,14,0.85); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s;}
+    .gallery-item:hover .gallery-item-overlay {opacity: 1;}
+    .gallery-item-overlay button {margin: 0; padding: 8px 16px; font-size: 9px;}
+
+    .stats-grid {display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 28px;}
+    .stat-card {background: var(--cream2); border: 1px solid var(--parch); border-radius: 4px; padding: 18px; text-align: center; box-shadow: 0 2px 8px rgba(26,21,14,0.05);}
+    .stat-value {font-family: 'DM Serif Display', serif; font-size: 32px; color: var(--terra); margin-bottom: 4px;}
+    .stat-label {font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted);}
+
+    .filter-row {display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap;}
+    .filter-row .form-input, .filter-row .form-select {flex: 1; min-width: 160px; margin-bottom: 0;}
+    .filter-row .btn {flex-shrink: 0;}
+
+    .reservation-card {background: #fff; border: 1px solid var(--parch); border-left: 4px solid var(--terra); border-radius: 4px; padding: 18px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(26,21,14,0.05); transition: all 0.3s;}
+    .reservation-card:hover {box-shadow: 0 4px 16px rgba(196,98,45,0.12); transform: translateY(-2px);}
+    .reservation-card.highlighted {animation: highlight-pulse 2s ease-in-out 3; border-left-color: var(--sage);}
+    @keyframes highlight-pulse {0%,100%{background:#fff}50%{background:var(--sagefade)}}
+    .reservation-card p {font-size: 12px; margin: 6px 0; color: var(--ink);}
+    .reservation-card strong {color: var(--terra); font-weight: 700;}
+    .reservation-actions {display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;}
+    .reservation-actions .btn {flex: 1; min-width: 110px; padding: 9px 14px; font-size: 9px;}
+
+    .unavailable-list {list-style: none; padding: 0; margin: 0;}
+    .unavailable-item {background: var(--cream2); border: 1px solid var(--parch); border-left: 3px solid var(--sage); padding: 14px 16px; border-radius: 4px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ink);}
+
+    .checkbox-group {margin-bottom: 16px;}
+    .checkbox-group label {display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink); cursor: pointer;}
+    .checkbox-group input[type="checkbox"] {width: 18px; height: 18px; accent-color: var(--terra); cursor: pointer;}
+
+    .modal-overlay {display: none; position: fixed; inset: 0; background: rgba(26,21,14,0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 2000; padding: 20px;}
+    .modal-overlay.open {display: flex;}
+    .modal-box {background: var(--cream); padding: 28px 24px; border-radius: 4px; max-width: 440px; width: 100%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(26,21,14,0.4); border: 1px solid var(--parch); border-top: 4px solid var(--terra);}
+    .modal-title {font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); margin-bottom: 18px; text-align: center;}
+
+    .radio-group {display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;}
+    .radio-option {display: flex; align-items: center; padding: 12px 14px; border: 1px solid var(--parch); border-radius: 4px; cursor: pointer; background: var(--cream2); transition: all 0.3s;}
+    .radio-option:hover {background: var(--cream3); border-color: var(--terra);}
+    .radio-option input[type="radio"] {margin-right: 12px; width: 16px; height: 16px; accent-color: var(--terra);}
+    .radio-option label {font-size: 13px; color: var(--ink); cursor: pointer; font-weight: 600;}
+
+    #toast {visibility: hidden; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--ink2); color: var(--cream); padding: 14px 24px; border-radius: 4px; font-size: 12px; font-weight: 700; z-index: 3000; opacity: 0; transition: opacity 0.5s, bottom 0.5s; box-shadow: 0 8px 32px rgba(26,21,14,0.4); border: 1px solid var(--terra);}
+
+    .empty-state {text-align: center; padding: 60px 20px; color: var(--muted);}
+    .empty-icon {font-size: 48px; margin-bottom: 12px; opacity: 0.4;}
+    .empty-text {font-size: 14px; font-weight: 600;}
+
+    @media (max-width: 600px) {
+      .container {padding: 20px 16px;}
+      .reservation-actions {flex-direction: column;}
+      .reservation-actions .btn {width: 100%;}
+      .filter-row {flex-direction: column;}
+      .filter-row .form-input, .filter-row .form-select, .filter-row .btn {width: 100%;}
+      .gallery-item {width: 200px; height: 200px;}
+    }
+  </style>
+</head>
+<body>
+
+  <div id="accessOverlay">
+    <div class="overlay-logo">ATM <span style="color:var(--terra); font-style:italic;">Beauty</span></div>
+    <div class="spinner"></div>
+    <div id="accessStatus">Verifying access...</div>
+  </div>
+
+  <div id="dashboardContent" style="display:none;">
+    <header class="header">
+      <div class="header-inner">
+        <div class="header-logo">ATM <span>Admin</span></div>
+        <button class="header-btn" onclick="firebase.auth().signOut().then(() => window.location.href='index.html')">Logout</button>
+      </div>
+    </header>
+
+    <nav class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('galleryPage')">Gallery</button>
+      <button class="nav-tab" onclick="showPage('reservationsPage')">Reservations</button>
+      <button class="nav-tab" onclick="showPage('unavailablePage')">Unavailable Days</button>
+    </nav>
+
+    <div id="galleryPage" class="page active">
+      <div class="container">
+        <h1 class="page-title">Gallery Manager</h1>
+        <p class="page-subtitle">Upload and manage your salon photos</p>
+        <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+          <div class="upload-icon">📸</div>
+          <div class="upload-text">Upload Photos</div>
+          <div class="upload-hint">Click to select images (JPEG, PNG, WEBP)</div>
+          <input type="file" id="imageInput" accept="image/*" multiple onchange="uploadImages()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category for Upload</label>
+          <select id="categoryInput" class="form-select">
+            <option value="Hair">Hair</option>
+            <option value="Lashes">Lashes</option>
+            <option value="Braids">Braids</option>
+            <option value="Weaves">Weaves</option>
+            <option value="Natural">Natural</option>
+            <option value="Beauty">Beauty</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div id="uploadProgress" style="display:none; text-align:center; color:var(--terra); font-weight:700; margin-bottom:20px;"></div>
+        <div id="galleryContainer"></div>
+      </div>
+    </div>
+
+    <div id="reservationsPage" class="page">
+      <div class="container">
+        <h1 class="page-title">Reservations</h1>
+        <p class="page-subtitle">Manage client bookings</p>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Total</div></div>
+          <div class="stat-card"><div class="stat-value" id="statToday">0</div><div class="stat-label">Today</div></div>
+          <div class="stat-card"><div class="stat-value" id="statPending">0</div><div class="stat-label">Pending</div></div>
+          <div class="stat-card"><div class="stat-value" id="statConfirmed">0</div><div class="stat-label">Confirmed</div></div>
+        </div>
+        <div class="filter-row">
+          <select id="statusFilter" class="form-select" onchange="loadReservations()">
+            <option value="all">All Bookings</option>
+            <option value="active">Active Only</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+          <select id="depositFilter" class="form-select" onchange="loadReservations()">
+            <option value="all">All Deposits</option>
+            <option value="Made">Deposit Made</option>
+            <option value="Pending">Deposit Pending</option>
+          </select>
+          <input type="date" id="dateFilter" class="form-input" onchange="loadReservations()" placeholder="Filter by date"/>
+          <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+          <button class="btn btn-danger" onclick="clearPastReservations()">Clear Past</button>
+        </div>
+        <div id="reservationsList"></div>
+      </div>
+    </div>
+
+    <div id="unavailablePage" class="page">
+      <div class="container">
+        <h1 class="page-title">Unavailable Days</h1>
+        <p class="page-subtitle">Block specific dates or time ranges</p>
+        <div style="background:var(--cream2); border:1px solid var(--parch); border-radius:4px; padding:24px; margin-bottom:28px;">
+          <div class="form-group"><label class="form-label">Select Date</label><input type="date" id="unavailableDateInput" class="form-input"/></div>
+          <div class="checkbox-group"><label><input type="checkbox" id="allDayCheckbox" checked onchange="toggleTimeInputs()"/><span>All Day Unavailable</span></label></div>
+          <div id="timeInputs" style="display:none;">
+            <div class="form-group"><label class="form-label">Start Time</label><input type="time" id="startTimeInput" class="form-input"/></div>
+            <div class="form-group"><label class="form-label">End Time</label><input type="time" id="endTimeInput" class="form-input"/></div>
+          </div>
+          <button class="btn btn-primary" onclick="addUnavailableDate()">Add Unavailable Day</button>
+        </div>
+        <div style="background:#fff; border:1px solid var(--parch); border-radius:4px; padding:24px;">
+          <h3 style="font-family:'DM Serif Display',serif; color:var(--ink); margin-bottom:18px; font-size:20px;">Blocked Dates</h3>
+          <ul class="unavailable-list" id="unavailableDatesList"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="depositModal">
+      <div class="modal-box">
+        <h3 class="modal-title">Update Deposit Status</h3>
+        <div class="radio-group">
+          <div class="radio-option"><input type="radio" name="depositChoice" value="Made" id="depositMade"/><label for="depositMade">Deposit Made ✓</label></div>
+          <div class="radio-option"><input type="radio" name="depositChoice" value="Pending" id="depositPending"/><label for="depositPending">Deposit Pending ⚠️</label></div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-neutral" style="flex:1;" onclick="closeDepositModal()">Cancel</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="confirmDeposit()">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="statusModal">
+      <div class="modal-box">
+        <h3 class="modal-title">Update Booking Status</h3>
+        <div class="radio-group">
+          <div class="radio-option"><input type="radio" name="statusChoice" value="Active" id="statusActive"/><label for="statusActive">Active ✓</label></div>
+          <div class="radio-option"><input type="radio" name="statusChoice" value="Cancelled" id="statusCancelled"/><label for="statusCancelled">Cancelled ✕</label></div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-neutral" style="flex:1;" onclick="closeStatusModal()">Cancel</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="confirmStatus()">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="conflictModal">
+      <div class="modal-box">
+        <h3 class="modal-title">⚠️ Booking Conflicts</h3>
+        <p style="text-align:center; color:var(--muted); margin-bottom:20px; font-size:12px;">The following bookings are scheduled during this time.</p>
+        <div id="conflictList"></div>
+        <button class="btn btn-primary" style="width:100%; margin-top:16px;" onclick="closeConflictModal()">Close</button>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="adminCancelModal">
+      <div class="modal-box" style="max-width:360px; text-align:center;">
+        <input type="hidden" id="adminCancelBookingId"/>
+        <div style="font-size:48px; margin-bottom:12px;">⚠️</div>
+        <h3 class="modal-title">Cancel This Booking?</h3>
+        <p style="font-size:12px; color:var(--muted); margin-bottom:24px; line-height:1.6;">This will mark the booking as <strong style="color:var(--terra);">Cancelled</strong>. The booking will remain in the system.</p>
+        <div style="display:flex; gap:10px; justify-content:center;">
+          <button class="btn btn-neutral" style="flex:1;" onclick="closeAdminCancelModal()">Keep</button>
+          <button class="btn btn-danger" style="flex:1;" onclick="confirmAdminCancel()">Cancel It</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+  </div>
+
+  <script>
+    const firebaseConfig={apiKey:"AIzaSyCT0aEche1SGWjS_pEn0MmLQH6OGdZ07cU",authDomain:"devonte-cutz.firebaseapp.com",projectId:"devonte-cutz",storageBucket:"devonte-cutz.firebasestorage.app",messagingSenderId:"345703317013",appId:"1:345703317013:web:8b167d90841df86590d81c"};
+    firebase.initializeApp(firebaseConfig);const db=firebase.firestore(),storage=firebase.storage();
+    function showPage(e){document.querySelectorAll(".page").forEach(e=>e.classList.remove("active")),document.querySelectorAll(".nav-tab").forEach(e=>e.classList.remove("active")),document.getElementById(e).classList.add("active"),event.target.classList.add("active"),"galleryPage"===e&&loadGallery(),"reservationsPage"===e&&loadReservations(),"unavailablePage"===e&&loadUnavailableDates()}
+    function toggleTimeInputs(){document.getElementById("timeInputs").style.display=document.getElementById("allDayCheckbox").checked?"none":"block"}
+    function loadGallery(){const e=document.getElementById("galleryContainer");e.innerHTML='<p style="text-align:center; color:var(--muted);">Loading gallery...</p>',db.collection("gallery").orderBy("sortOrder","asc").onSnapshot(t=>{if(t.empty)return void(e.innerHTML='<div class="empty-state"><div class="empty-icon">📸</div><div class="empty-text">No photos yet. Upload your first image!</div></div>');const a={};t.forEach(e=>{const t=e.data(),n=t.category||"Uncategorized";a[n]||(a[n]=[]),a[n].push({id:e.id,...t})}),e.innerHTML="";for(const t in a){const n=document.createElement("div");n.style.marginBottom="32px";const o=document.createElement("div");o.style.cssText="font-family:DM Serif Display,serif; font-size:20px; color:var(--ink); margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid var(--terra);",o.textContent=t,n.appendChild(o);const l=document.createElement("div");l.className="gallery-scroll",a[t].forEach(e=>{const t=document.createElement("div");t.className="gallery-item",t.innerHTML=`<img src="${e.url}" alt="${t}" loading="lazy"><div class="gallery-item-overlay"><button class="btn btn-danger" onclick="deleteImage('${e.id}', '${e.url}')">Delete</button></div>`,l.appendChild(t)}),n.appendChild(l),e.appendChild(n)}})}
+    async function uploadImages(){const e=document.getElementById("imageInput").files,t=document.getElementById("categoryInput").value,a=document.getElementById("uploadProgress");if(0!==e.length){a.style.display="block",a.textContent="Uploading...";try{for(let n=0;n<e.length;n++){const o=e[n],l=storage.ref("gallery/"+Date.now()+"_"+o.name);await l.put(o);const r=await l.getDownloadURL(),i=await db.collection("gallery").orderBy("sortOrder","desc").limit(1).get();let c=0;i.empty||(c=(i.docs[0].data().sortOrder||0)+1),await db.collection("gallery").add({url:r,category:t,sortOrder:c,timestamp:firebase.firestore.FieldValue.serverTimestamp()})}a.textContent="✓ Upload complete!",document.getElementById("imageInput").value="",setTimeout(()=>{a.style.display="none"},2e3)}catch(e){a.textContent="✕ Upload failed: "+e.message,a.style.color="#C84630"}}}
+    function deleteImage(e,t){confirm("Delete this image?")&&storage.refFromURL(t).delete().then(()=>db.collection("gallery").doc(e).delete()).then(()=>showToast("Image deleted")).catch(e=>alert("Delete failed: "+e.message))}
+    function loadReservations(){const e=document.getElementById("reservationsList"),t=document.getElementById("statusFilter").value,a=document.getElementById("depositFilter").value,n=document.getElementById("dateFilter").value;e.innerHTML='<p style="text-align:center; color:var(--muted);">Loading reservations...</p>',db.collection("bookings").orderBy("date","desc").onSnapshot(o=>{let l=[];o.forEach(e=>{const o=e.data();let r=!0;"all"!==t&&("active"===t&&"Cancelled"===o.status&&(r=!1),"Cancelled"===t&&"Cancelled"!==o.status&&(r=!1)),"all"!==a&&o.deposit!==a&&(r=!1),n&&o.date!==n&&(r=!1),r&&l.push({id:e.id,...o})});const r=new Date().toISOString().split("T")[0];if(document.getElementById("statTotal").textContent=l.filter(e=>"Cancelled"!==e.status).length,document.getElementById("statToday").textContent=l.filter(e=>e.date===r&&"Cancelled"!==e.status).length,document.getElementById("statPending").textContent=l.filter(e=>"Pending"===e.deposit&&"Cancelled"!==e.status).length,document.getElementById("statConfirmed").textContent=l.filter(e=>"Made"===e.deposit&&"Cancelled"!==e.status).length,0===l.length)return void(e.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">No bookings match your filters.</div></div>');e.innerHTML="",l.forEach(t=>{let a="Unknown Date";try{if(t.date){const[e,n,o]=t.date.split("-").map(Number);e&&n&&o&&(a=new Date(e,n-1,o).toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"}))}}catch(e){}const n="Made"===t.deposit||"Yes"===t.deposit,o="Cancelled"===t.status,l=document.createElement("div");l.className="reservation-card",l.dataset.id=t.id,o&&(l.style.opacity="0.6"),l.innerHTML=`<p><strong>Booking #:</strong> ${t.bookingNumber||"N/A"}</p><p><strong>👤 Name:</strong> ${t.name||"N/A"}</p><p><strong>📞 Phone:</strong> ${t.phone||"N/A"}</p><p><strong>📅 Date:</strong> ${a}</p><p><strong>⏰ Time:</strong> ${t.time||"N/A"}</p>${t.service?`<p><strong>✦ Service:</strong> ${t.service}</p>`:""}<p><strong>💳 Deposit:</strong> <span style="color:${n?"var(--sage)":"var(--terra)"}; font-weight:700;">${n?"Confirmed ✓":"Pending ⚠️"}</span></p>${t.total?`<p><strong>💰 Total:</strong> <span style="color:var(--terra); font-weight:700;">$${Number(t.total).toLocaleString()}</span></p>`:""}<p><strong>Status:</strong> <span style="color:${o?"#C84630":"var(--sage)"}; font-weight:700;">${o?"Cancelled ✕":"Active ✓"}</span></p><div class="reservation-actions"><button class="btn btn-secondary" onclick="updateDeposit('${t.id}')">💳 Deposit</button><button class="btn btn-neutral" onclick="updateStatus('${t.id}')">Status</button>${o?"":`<button class="btn btn-danger" onclick="cancelReservation('${t.id}')">Cancel</button>`}</div>`,e.appendChild(l)})})}
+    function clearFilters(){document.getElementById("statusFilter").value="all",document.getElementById("depositFilter").value="all",document.getElementById("dateFilter").value="",loadReservations()}
+    function clearPastReservations(){if(!confirm("Delete all past reservations? This cannot be undone!"))return;const e=new Date().toISOString().split("T")[0];db.collection("bookings").where("date","<",e).get().then(e=>{const t=db.batch();return e.forEach(e=>t.delete(e.ref)),t.commit()}).then(()=>showToast("✓ Past reservations cleared")).catch(e=>alert("Failed: "+e.message))}
+    function cancelReservation(e){document.getElementById("adminCancelBookingId").value=e,document.getElementById("adminCancelModal").classList.add("open")}
+    function confirmAdminCancel(){const e=document.getElementById("adminCancelBookingId").value;e&&db.collection("bookings").doc(e).update({status:"Cancelled",cancelledBy:"admin"}).then(()=>{closeAdminCancelModal(),showToast("🗑 Booking cancelled")}).catch(e=>{closeAdminCancelModal(),alert("Failed: "+e.message)})}
+    function closeAdminCancelModal(){document.getElementById("adminCancelModal").classList.remove("open"),document.getElementById("adminCancelBookingId").value=""}
+    let currentBookingId=null;function updateDeposit(e){currentBookingId=e,document.querySelectorAll('input[name="depositChoice"]').forEach(e=>e.checked=!1),document.getElementById("depositModal").classList.add("open")}
+    function confirmDeposit(){const e=document.querySelector('input[name="depositChoice"]:checked');e?db.collection("bookings").doc(currentBookingId).update({deposit:e.value}).then(()=>{closeDepositModal(),showToast(`✓ Deposit: ${e.value}`)}).catch(e=>showToast("✕ Update failed",!1)):showToast("⚠️ Please select an option",!1)}
+    function closeDepositModal(){document.getElementById("depositModal").classList.remove("open"),currentBookingId=null}
+    let currentStatusBookingId=null;function updateStatus(e){currentStatusBookingId=e,document.querySelectorAll('input[name="statusChoice"]').forEach(e=>e.checked=!1),document.getElementById("statusModal").classList.add("open")}
+    function confirmStatus(){const e=document.querySelector('input[name="statusChoice"]:checked');e?db.collection("bookings").doc(currentStatusBookingId).update({status:e.value}).then(()=>{closeStatusModal(),loadReservations()}).catch(e=>alert("Failed: "+e.message)):alert("Please select an option")}
+    function closeStatusModal(){document.getElementById("statusModal").classList.remove("open"),currentStatusBookingId=null}
+    function convertTimeToMinutes(e){const[t,a]=e.split(" ");let[n,o]=t.split(":").map(Number);return"PM"===a&&12!==n&&(n+=12),"AM"===a&&12===n&&(n=0),60*n+o}
+    async function addUnavailableDate(){const e=document.getElementById("unavailableDateInput").value,t=document.getElementById("allDayCheckbox").checked,a=document.getElementById("startTimeInput").value,n=document.getElementById("endTimeInput").value;if(!e)return void alert("Please select a date");if(!t&&(!a||!n))return void alert("Please provide both start and end time");const[o,l,r]=e.split("-"),i=`${o}-${l}-${r}`;try{const e=await db.collection("bookings").where("date","==",i).get(),o=[];if(!e.empty&&e.forEach(e=>{const l=e.data().time||null;if(t)o.push({id:e.id,...e.data()});else if(l){const t=convertTimeToMinutes(l),r=convertTimeToMinutes(a),i=convertTimeToMinutes(n);t>=r&&t<=i&&o.push({id:e.id,...e.data()})}}),o.length>0)return void showConflictModal(o);await db.collection("unavailableDays").add({date:i,allDay:t,startTime:t?null:a,endTime:t?null:n,timestamp:firebase.firestore.FieldValue.serverTimestamp()}),document.getElementById("unavailableDateInput").value="",document.getElementById("startTimeInput").value="",document.getElementById("endTimeInput").value="",document.getElementById("allDayCheckbox").checked=!0,document.getElementById("timeInputs").style.display="none",showToast("✓ Unavailable day added")}catch(e){console.error(e),alert("Failed to add unavailable day")}}
+    function loadUnavailableDates(){const e=document.getElementById("unavailableDatesList");db.collection("unavailableDays").orderBy("date").onSnapshot(t=>{if(e.innerHTML="",t.empty)return void(e.innerHTML='<li style="text-align:center; color:var(--muted); padding:20px;">No blocked dates</li>');t.forEach(t=>{const a=t.data();let n=a.date;if(a.date&&a.date.includes("-")){const[e,t,o]=a.date.split("-");n=new Date(e,t-1,o).toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}const o=`${n} — ${a.allDay?"All Day":`${a.startTime} to ${a.endTime}`}`,l=document.createElement("li");l.innerHTML=`<div class="unavailable-item">${o}<button class="btn btn-danger" style="padding:6px 12px; font-size:9px; margin:0;" onclick="removeUnavailableDate('${t.id}')">Remove</button></div>`,e.appendChild(l)})})}
+    function removeUnavailableDate(e){confirm("Remove this blocked date?")&&db.collection("unavailableDays").doc(e).delete()}
+    function showConflictModal(e){const t=document.getElementById("conflictList");t.innerHTML="",e.forEach(e=>{const a=document.createElement("div");a.style.cssText="padding:14px; margin-bottom:12px; border:1px solid var(--parch); border-radius:4px; background:var(--cream2); border-left:3px solid var(--terra);",a.innerHTML=`<p style="margin:4px 0; font-size:12px;"><strong>Name:</strong> ${e.name||"N/A"}</p><p style="margin:4px 0; font-size:12px;"><strong>Phone:</strong> ${e.phone||"N/A"}</p><p style="margin:4px 0; font-size:12px;"><strong>Service:</strong> ${e.service||"N/A"}</p><p style="margin:4px 0; font-size:12px;"><strong>Date:</strong> ${e.date}</p><p style="margin:4px 0; font-size:12px;"><strong>Time:</strong> ${e.time||"N/A"}</p><button class="btn btn-primary" style="margin-top:10px; padding:8px 14px; font-size:9px;" onclick="goToReservationsAndHighlight('${e.id}')">Go to Reservation</button>`,t.appendChild(a)}),document.getElementById("conflictModal").classList.add("open")}
+    function goToReservationsAndHighlight(e){closeConflictModal(),showPage("reservationsPage"),setTimeout(()=>{const t=document.querySelector(`[data-id="${e}"]`);t&&(document.querySelectorAll(".highlighted").forEach(e=>e.classList.remove("highlighted")),t.classList.add("highlighted"),t.scrollIntoView({behavior:"smooth",block:"center"}),setTimeout(()=>t.classList.remove("highlighted"),6e3))},500)}
+    function closeConflictModal(){document.getElementById("conflictModal").classList.remove("open")}
+    function showToast(e,t=!0){const a=document.getElementById("toast");a.textContent=e,a.style.backgroundColor=t?"var(--ink2)":"#C84630",a.style.visibility="visible",a.style.opacity="1",a.style.bottom="50px",setTimeout(()=>{a.style.opacity="0",a.style.bottom="30px",setTimeout(()=>{a.style.visibility="hidden"},500)},3e3)}
+    const ADMIN_UID="Vj3a2XPtWTamBVFi86OP1oZJMi63";firebase.auth().onAuthStateChanged(e=>{const t=document.getElementById("accessOverlay"),a=document.getElementById("accessStatus"),n=document.getElementById("dashboardContent");if(!e)return a.textContent="Access denied — redirecting...",a.style.color="#C84630",void setTimeout(()=>{window.location.href="index.html"},1200);if(e.uid!==ADMIN_UID)return a.textContent="Unauthorised — signing out...",a.style.color="#C84630",void firebase.auth().signOut().then(()=>{setTimeout(()=>{window.location.href="index.html"},1200)});a.textContent="Access granted ✦",a.style.color="var(--sage)",setTimeout(()=>{t.style.transition="opacity 0.4s",t.style.opacity="0",setTimeout(()=>{t.style.display="none",n.style.display="block"},400)},600),loadGallery(),loadReservations(),loadUnavailableDates()}),document.querySelectorAll(".modal-overlay").forEach(e=>{e.addEventListener("click",t=>{t.target===e&&e.classList.remove("open")})});
+  </script>
+
+</body>
+</html>
